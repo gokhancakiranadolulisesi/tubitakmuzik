@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ayarlar</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 20px; background: #f7f7f7; }
+        .container { max-width: 400px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px #0001; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        .notes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .notes label { font-weight: normal; margin: 0; }
+        button { margin-top: 20px; width: 100%; padding: 10px; font-size: 1.1em; border: none; border-radius: 5px; background: #4caf50; color: #fff; }
+        select, input[type="range"] { width: 100%; margin-top: 5px; }
+        .range-value { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Ayarlar</h2>
+        <form id="settingsForm">
+            <label for="speed">Hız: <span id="speedValue" class="range-value">2</span></label>
+            <input type="range" id="speed" name="speed" min="1" max="5" value="2">
+
+            <label>Nota Aralığı:</label>
+            <div class="notes">
+                <label><input type="checkbox" name="notes" value="do" checked> Do</label>
+                <label><input type="checkbox" name="notes" value="re" checked> Re</label>
+                <label><input type="checkbox" name="notes" value="mi" checked> Mi</label>
+                <label><input type="checkbox" name="notes" value="fa" checked> Fa</label>
+                <label><input type="checkbox" name="notes" value="sol" checked> Sol</label>
+                <label><input type="checkbox" name="notes" value="la" checked> La</label>
+                <label><input type="checkbox" name="notes" value="si" checked> Si</label>
+                <label><input type="checkbox" name="notes" value="do2" checked> Do (2)</label>
+            </div>
+
+            <label for="duration">Süre:</label>
+            <select id="duration" name="duration">
+                <option value="unlimited">Sınırsız</option>
+                <option value="30">30 Saniye</option>
+                <option value="60">1 Dakika</option>
+            </select>
+
+            <button type="submit">Başla</button>
+        </form>
+    </div>
+    <script>
+        const speedInput = document.getElementById('speed');
+        const speedValue = document.getElementById('speedValue');
+        speedInput.addEventListener('input', () => {
+            speedValue.textContent = speedInput.value;
+        });
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem('musicGameSettings'));
+            if (settings) {
+                speedInput.value = settings.speed;
+                speedValue.textContent = settings.speed;
+                document.getElementById('duration').value = settings.duration;
+                document.querySelectorAll('input[name="notes"]').forEach(cb => {
+                    cb.checked = settings.notes.includes(cb.value);
+                });
+            }
+        }
+        document.getElementById('settingsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const speed = speedInput.value;
+            const duration = document.getElementById('duration').value;
+            const notes = Array.from(document.querySelectorAll('input[name="notes"]:checked')).map(cb => cb.value);
+            if (notes.length === 0) {
+            alert('En az bir nota seçmelisiniz!');
+            return;
+            }
+            const settings = { speed, notes, duration };
+            localStorage.setItem('musicGameSettings', JSON.stringify(settings));
+            window.location.href = 'ritim.html';
+        });
+        window.addEventListener('DOMContentLoaded', loadSettings);
+    </script>
+</body>
+</html>

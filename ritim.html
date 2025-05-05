@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ritim Oyunu</title>
+    <link rel="stylesheet" href="ritim.css">
+
+</head>
+<body>
+    <div></div>
+    <span>Doğru: <span id="correctCount">0</span></span>
+    <span>Yanlış: <span id="wrongCount">0</span></span>
+    <span>Skor: <span id="skor">0</span></span>
+    </div>
+    <div class="note-display" id="noteName"></div>
+    <div class="staff">
+        <div class="clef">&#119070;</div>
+        <div class="note-line" style="width: 300px; height: 40px; position: relative;">
+            <div style="position: absolute; width: 100%; height: 1px; background: black; top: 0;"></div>
+            <div style="position: absolute; width: 100%; height: 1px; background: black; top: 10px;"></div>
+            <div style="position: absolute; width: 100%; height: 1px; background: black; top: 20px;"></div>
+            <div style="position: absolute; width: 100%; height: 1px; background: black; top: 30px;"></div>
+            <div style="position: absolute; width: 100%; height: 1px; background: black; top: 40px;"></div>
+            <span class="note" id="noteSymbol" style="left: 0%;"></span>
+        </div>
+        </div>
+
+
+        <div class="piano">
+        <div class="key" data-note="C"><span>Do</span></div>
+        <div class="key black" data-note="C#"><span>Do#</span></div>
+        <div class="key" data-note="D"><span>Re</span></div>
+        <div class="key black" data-note="D#"><span>Re#</span></div>
+        <div class="key" data-note="E"><span>Mi</span></div>
+        <div class="key" data-note="F"><span>Fa</span></div>
+        <div class="key black" data-note="F#"><span>Fa#</span></div>
+        <div class="key" data-note="G"><span>Sol</span></div>
+        <div class="key black" data-note="G#"><span>Sol#</span></div>
+        <div class="key" data-note="A"><span>La</span></div>
+        <div class="key black" data-note="A#"><span>La#</span></div>
+        <div class="key" data-note="B"><span>Si</span></div>
+        </div>
+
+        <script>
+        let notes = [
+            { name: "C", display: "Do", pos: 31 },
+            { name: "D", display: "Re", pos: 25 },
+            { name: "E", display: "Mi", pos: 19 },
+            { name: "F", display: "Fa", pos: 13 },
+            { name: "G", display: "Sol", pos: 8 },
+            { name: "A", display: "La", pos: 4 },
+            { name: "B", display: "Si", pos: -3 }
+        ];
+
+        const settings = JSON.parse(localStorage.getItem('musicGameSettings') || '{}');
+        if (Array.isArray(settings.notes)) {
+            const allowed = settings.notes.map(n => n.toUpperCase());
+            notes = notes.filter(n => allowed.includes(n.display.toUpperCase()));
+        }
+        console.log(notes);
+        function getGameSpeed() {
+            const settings = JSON.parse(localStorage.getItem('musicGameSettings') || '{}');
+            return settings.speed || "1";
+        }
+        function randomNote() {
+            return notes[Math.floor(Math.random() * notes.length)];
+        }
+
+        let currentNote = randomNote();
+        let animationFrame;
+        let noteLeft = 0;
+        let noteMoving = false;
+        let correctCount = 0;
+        let wrongCount = 0;
+        const noteSymbol = document.getElementById('noteSymbol');
+        const noteLine = document.querySelector('.note-line');
+        const noteLineWidth = 100; 
+
+        function updateCounts() {
+            document.getElementById('correctCount').textContent = correctCount;
+            document.getElementById('wrongCount').textContent = wrongCount;
+            document.getElementById('skor').textContent = correctCount * 100;
+        }
+
+   
+
+        function resetNote() {
+            noteLeft = 0;
+            noteSymbol.style.left = noteLeft + "px";
+            noteSymbol.textContent = "♪";
+            noteSymbol.style.top = currentNote.pos + "px";
+            document.getElementById('noteName').textContent = "";
+        }
+
+        function animateNote() {
+            noteMoving = true;
+            noteSymbol.textContent = "♪";
+            noteSymbol.style.top = currentNote.pos + "px";
+            function step() {
+            noteLeft += Math.random() + parseFloat(settings.speed) + (correctCount * 0.05);
+            noteSymbol.style.left = noteLeft + "px";
+            if (noteLeft < noteLineWidth * 3) {
+                animationFrame = requestAnimationFrame(step);
+            } else {
+                noteMoving = false;
+                wrongCount++;
+                updateCounts();
+                setTimeout(startNewNote, 100);
+            }
+            }
+            noteLeft = 0;
+            noteSymbol.style.left = noteLeft + "px";
+            animationFrame = requestAnimationFrame(step);
+        }
+
+        function startNewNote() {
+            cancelAnimationFrame(animationFrame);
+            currentNote = randomNote();
+            resetNote();
+            animateNote();
+        }
+        function startTimer() {
+            settings.duration = parseInt(settings.duration) || 99999;
+            if (settings.duration > 0 && settings.duration < 99999) {
+                const timerDisplay = document.createElement('div');
+                timerDisplay.id = "timerDisplay";
+                timerDisplay.style.fontWeight = "bold";
+                timerDisplay.style.margin = "10px";
+                document.body.insertBefore(timerDisplay, document.body.firstChild);
+
+                let remaining = settings.duration;
+                timerDisplay.textContent = "Kalan Süre: " + remaining + " sn";
+                const interval = setInterval(() => {
+                    remaining--;
+                    timerDisplay.textContent = "Kalan Süre: " + remaining + " sn";
+                    if (remaining <= 0) {
+                        clearInterval(interval);
+                    }
+                }, 1000);
+
+                setTimeout(() => {
+                    alert("Süre doldu! Doğru: " + correctCount + ", Yanlış: " + wrongCount);
+                    location.reload();
+                }, settings.duration * 1000);
+            }
+        }
+        window.addEventListener('DOMContentLoaded', startTimer);
+        resetNote();
+        animateNote();
+        updateCounts();
+
+        document.querySelectorAll('.key').forEach(key => {
+            key.addEventListener('click', function() {
+            const noteName = "notes/" + this.getAttribute('data-note') + ".wav";
+            console.log(noteName);
+            const audio = new Audio(noteName);
+            audio.play();
+            if (!noteMoving) return;
+            if (this.getAttribute('data-note') === currentNote.name) {
+                noteMoving = false;
+                correctCount++;
+                updateCounts();
+                cancelAnimationFrame(animationFrame);
+                this.style.transition = "background 0.25s";
+                this.style.background = "limegreen";
+                setTimeout(() => {
+                    this.style.background = "";
+                    startNewNote();
+                }, 250);
+            } else {
+                wrongCount++;
+                updateCounts();
+            
+                this.style.transition = "background 0.25s";
+                this.style.background = "red";
+                setTimeout(() => {
+                    this.style.background = "";
+                }, 250);
+            }
+            });
+        });
+        </script>
+</body>
+</html>
