@@ -98,7 +98,7 @@
             noteSymbol.textContent = "♪";
             noteSymbol.style.top = currentNote.pos + "px";
             function step() {
-            noteLeft += parseFloat(settings.speed) + (correctCount * 0.05);
+            noteLeft += parseFloat(settings.speed) - 0.75 + (correctCount * 0.05);
             noteSymbol.style.left = noteLeft + "px";
             if (noteLeft < noteLineWidth * 3) {
                 animationFrame = requestAnimationFrame(step);
