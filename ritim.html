@@ -59,7 +59,7 @@
             notes = notes.filter(n => allowed.includes(n.display.toUpperCase()));
         }
         console.log(notes);
-        function getGameSpeed() {
+        function getGameSpeed() { 
             const settings = JSON.parse(localStorage.getItem('musicGameSettings') || '{}');
             return settings.speed || "1";
         }
@@ -98,7 +98,7 @@
             noteSymbol.textContent = "♪";
             noteSymbol.style.top = currentNote.pos + "px";
             function step() {
-            noteLeft += Math.random() + parseFloat(settings.speed) + (correctCount * 0.05);
+            noteLeft += parseFloat(settings.speed) + (correctCount * 0.05);
             noteSymbol.style.left = noteLeft + "px";
             if (noteLeft < noteLineWidth * 3) {
                 animationFrame = requestAnimationFrame(step);
