@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Nota Tahmin Oyunu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .white-key {
+        width: 40px;
+        height: 180px;
+        background: linear-gradient(to bottom, #ffffff, #e6e6e6);
+        border: 1px solid #ccc;
+        box-shadow: inset -1px -4px 5px rgba(0, 0, 0, 0.2),
+          2px 2px 3px rgba(0, 0, 0, 0.2);
+        display: inline-block;
+        margin-right: -1px;
+        border-radius: 0 0 4px 4px;
+        position: relative;
+        z-index: 1;
+        transition: transform 0.1s ease;
+      }
+      .white-key:active {
+        transform: translateY(2px);
+      }
+      .black-key {
+        width: 25px;
+        height: 120px;
+        background: linear-gradient(to bottom, #333, #000);
+        border: 1px solid #111;
+        position: absolute;
+        top: 0;
+        left: 28px;
+        margin-left: -12.5px;
+        z-index: 2;
+        border-radius: 0 0 3px 3px;
+        transition: transform 0.1s ease;
+      }
+      .black-key:active {
+        transform: translateY(2px);
+      }
+      .key-container {
+        position: relative;
+        display: inline-block;
+      }
+      #keyboard {
+        white-space: nowrap;
+        overflow-x: auto;
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      .note-label {
+        position: absolute;
+        bottom: 4px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 12px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <div class="container py-4">
+      <h2 class="text-center mb-4">Nota Tahmin Oyunu</h2>
+
+      <div class="mb-3 text-center fs-5">Skor: <span id="score">0</span></div>
+
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <label for="octaveMin" class="form-label">Minimum Oktav</label>
+          <input
+            type="range"
+            class="form-range"
+            min="2"
+            max="7"
+            value="3"
+            id="octaveMin"
+          />
+          <div>Seçilen: <span id="minLabel">3</span></div>
+        </div>
+        <div class="col-md-6">
+          <label for="octaveMax" class="form-label">Maksimum Oktav</label>
+          <input
+            type="range"
+            class="form-range"
+            min="2"
+            max="8"
+            value="5"
+            id="octaveMax"
+          />
+          <div>Seçilen: <span id="maxLabel">5</span></div>
+        </div>
+      </div>
+
+      <div class="text-center mb-3">
+        <div class="form-check form-switch d-inline-block me-3">
+          <input class="form-check-input" type="checkbox" id="toggleNotes" />
+          <label class="form-check-label" for="toggleNotes"
+            >Notaları Göster</label
+          >
+        </div>
+        <button id="playRandom" class="btn btn-success me-2">
+          Rastgele Nota Çal
+        </button>
+        <button id="replay" class="btn btn-primary">Tekrar Çal</button>
+      </div>
+
+      <div id="keyboard" class="d-flex align-items-end"></div>
+    </div>
+
+    <script>
+      const NOTE_NAMES = [
+        "C",
+        "C#",
+        "D",
+        "D#",
+        "E",
+        "F",
+        "F#",
+        "G",
+        "G#",
+        "A",
+        "A#",
+        "B",
+      ];
+      let score = 0;
+      let correctNote = null;
+      let showNotes = false;
+
+      const keyboard = document.getElementById("keyboard");
+      const scoreDisplay = document.getElementById("score");
+      const minSlider = document.getElementById("octaveMin");
+      const maxSlider = document.getElementById("octaveMax");
+      const minLabel = document.getElementById("minLabel");
+      const maxLabel = document.getElementById("maxLabel");
+      const toggleBtn = document.getElementById("toggleNotes");
+      const playRandomBtn = document.getElementById("playRandom");
+      const replayBtn = document.getElementById("replay");
+
+      toggleBtn.addEventListener("change", () => {
+        showNotes = toggleBtn.checked;
+        renderKeyboard(parseInt(minSlider.value), parseInt(maxSlider.value));
+      });
+
+      function getNoteName(midi) {
+        return NOTE_NAMES[midi % 12] + Math.floor(midi / 12 - 1);
+      }
+
+      function playNoteAudio(note) {
+        const sanitizedNote = note.replace("#", "%23");
+        const oggAudio = new Audio(`sounds/${sanitizedNote}.ogg`);
+        oggAudio.volume = 1.0;
+
+        oggAudio.addEventListener("error", function () {
+          const mp3Audio = new Audio(`sounds/${sanitizedNote}.mp3`);
+          mp3Audio.volume = 1.0;
+          mp3Audio.play().catch((e) => console.error("MP3 çalınamadı:", e));
+        });
+
+        oggAudio.play().catch((e) => {
+          const mp3Audio = new Audio(`sounds/${sanitizedNote}.mp3`);
+          mp3Audio.volume = 1.0;
+          mp3Audio.play().catch((e) => console.error("MP3 çalınamadı:", e));
+        });
+      }
+
+      function flashKey(el, color) {
+        const original = el.style.boxShadow;
+        el.style.boxShadow =
+          color === "green" ? "0 0 10px 4px lime" : "0 0 10px 4px red";
+        setTimeout(() => {
+          el.style.boxShadow = original;
+        }, 300);
+      }
+
+      function renderKeyboard(min, max) {
+        keyboard.innerHTML = "";
+        for (let octave = min; octave <= max; octave++) {
+          NOTE_NAMES.forEach((note, i) => {
+            if (!note.includes("#")) {
+              const midi = octave * 12 + i;
+              const container = document.createElement("div");
+              container.className = "key-container";
+
+              const white = document.createElement("div");
+              white.className = "white-key";
+              white.dataset.midi = midi;
+              if (showNotes)
+                white.innerHTML = `<div class="note-label">${note}${octave}</div>`;
+              white.addEventListener("click", () => handleGuess(midi, white));
+              container.appendChild(white);
+
+              const nextNote = NOTE_NAMES[i + 1];
+              if (nextNote && nextNote.includes("#")) {
+                const blackMidi = octave * 12 + i + 1;
+                const black = document.createElement("div");
+                black.className = "black-key";
+                black.dataset.midi = blackMidi;
+                black.addEventListener("click", () =>
+                  handleGuess(blackMidi, black)
+                );
+                container.appendChild(black);
+              }
+
+              keyboard.appendChild(container);
+            }
+          });
+        }
+      }
+
+      function randomNote(min, max) {
+        const notes = [];
+        for (let o = min; o <= max; o++) {
+          for (let i = 0; i < 12; i++) {
+            notes.push(o * 12 + i);
+          }
+        }
+        return notes[Math.floor(Math.random() * notes.length)];
+      }
+
+      function handleGuess(midi, keyEl) {
+        const guessed = getNoteName(midi);
+        playNoteAudio(guessed);
+        if (midi === correctNote) {
+          flashKey(keyEl, "green");
+          score += 10;
+          correctNote = null;
+        } else {
+          flashKey(keyEl, "red");
+          score -= 2;
+        }
+        scoreDisplay.textContent = score;
+      }
+
+      function startNewRound() {
+        const min = parseInt(minSlider.value);
+        const max = parseInt(maxSlider.value);
+        correctNote = randomNote(min, max);
+        const noteName = getNoteName(correctNote);
+        playNoteAudio(noteName);
+        console.log("Yeni nota:", noteName);
+      }
+
+      function replayNote() {
+        if (correctNote !== null) {
+          const noteName = getNoteName(correctNote);
+          playNoteAudio(noteName);
+        }
+      }
+
+      function validateSliders() {
+        let min = parseInt(minSlider.value);
+        let max = parseInt(maxSlider.value);
+        if (max <= min) {
+          max = min + 1;
+          maxSlider.value = max;
+        }
+        minLabel.textContent = min;
+        maxLabel.textContent = max;
+        renderKeyboard(min, max);
+      }
+
+      minSlider.addEventListener("input", validateSliders);
+      maxSlider.addEventListener("input", validateSliders);
+      playRandomBtn.addEventListener("click", () => {
+        if (correctNote === null) startNewRound();
+      });
+      replayBtn.addEventListener("click", replayNote);
+
+      validateSliders();
+    </script>
+  </body>
+</html>
